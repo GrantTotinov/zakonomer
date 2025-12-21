@@ -1,5 +1,3 @@
-import { supabase } from "@/integrations/supabase/client";
-
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 // API response types from parliament.bg
@@ -95,12 +93,6 @@ export interface ApiSession {
 
 // Proxy function to call Parliament API through our edge function
 async function callParliamentApi<T>(endpoint: string): Promise<T> {
-  const { data, error } = await supabase.functions.invoke('parliament-proxy', {
-    body: null,
-    method: 'POST',
-  });
-
-  // Use fetch directly since we need query params
   const response = await fetch(
     `${SUPABASE_URL}/functions/v1/parliament-proxy?endpoint=${encodeURIComponent(endpoint)}`,
     {
@@ -113,7 +105,7 @@ async function callParliamentApi<T>(endpoint: string): Promise<T> {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `API error: ${response.status}`);
+    throw new Error(errorData.error || errorData.message || `API error: ${response.status}`);
   }
 
   return response.json();
