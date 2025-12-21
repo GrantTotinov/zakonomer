@@ -87,6 +87,10 @@ export const translations = {
     // General
     'general.loading': 'Зареждане...',
     'general.noResults': 'Няма резултати',
+    'general.noResultsMessage': 'Опитайте да промените критериите за търсене.',
+    'general.error': 'Възникна грешка',
+    'general.errorMessage': 'Не успяхме да заредим данните. Моля, опитайте отново.',
+    'general.retry': 'Опитай отново',
     'general.seeMore': 'Виж повече',
     'general.seeLess': 'Виж по-малко',
     'general.back': 'Назад',
@@ -198,6 +202,10 @@ export const translations = {
     // General
     'general.loading': 'Loading...',
     'general.noResults': 'No results',
+    'general.noResultsMessage': 'Try adjusting your search criteria.',
+    'general.error': 'An error occurred',
+    'general.errorMessage': 'We could not load the data. Please try again.',
+    'general.retry': 'Try again',
     'general.seeMore': 'See more',
     'general.seeLess': 'See less',
     'general.back': 'Back',

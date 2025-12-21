@@ -2,11 +2,13 @@ import { useParams, Link } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Navigation } from '@/components/Navigation';
 import { Footer } from '@/components/Footer';
+import { LoadingState } from '@/components/LoadingState';
+import { ErrorState } from '@/components/ErrorState';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { getDeputyById, laws } from '@/data/mockData';
+import { useDeputy, useBills } from '@/hooks/useParliamentData';
 import { ArrowLeft, User, MapPin, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -14,7 +16,32 @@ export default function DeputyDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { t } = useLanguage();
   
-  const deputy = getDeputyById(id || '');
+  const { data: deputy, isLoading, isError, refetch } = useDeputy(id || '');
+  const { data: laws = [] } = useBills();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Navigation />
+        <main className="flex-1">
+          <LoadingState />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Navigation />
+        <main className="flex-1 flex items-center justify-center">
+          <ErrorState onRetry={() => refetch()} />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!deputy) {
     return (
@@ -51,8 +78,12 @@ export default function DeputyDetailPage() {
           <Card className="mb-8">
             <CardContent className="p-6">
               <div className="flex flex-col md:flex-row items-start gap-6">
-                <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center shrink-0">
-                  <User className="h-12 w-12 text-muted-foreground" />
+                <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+                  {deputy.photo ? (
+                    <img src={deputy.photo} alt={deputy.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="h-12 w-12 text-muted-foreground" />
+                  )}
                 </div>
 
                 <div className="flex-1">
