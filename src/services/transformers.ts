@@ -52,19 +52,25 @@ export function transformParty(apiParty: ApiParty): Party {
 }
 
 export function transformDeputy(apiDeputy: ApiDeputy): Deputy {
+  // Handle different API response field names
+  const deputyName = apiDeputy.name || (apiDeputy as any).fname && `${(apiDeputy as any).fname} ${(apiDeputy as any).lname}` || 'Неизвестен';
+  const partyName = apiDeputy.party || (apiDeputy as any).group || (apiDeputy as any).party_name || 'Независим';
+  const region = apiDeputy.region || (apiDeputy as any).constituency || (apiDeputy as any).mir || 'Неизвестен';
+  const photo = apiDeputy.photo || (apiDeputy as any).photo_url || (apiDeputy as any).image;
+  
   const party: Party = {
-    id: apiDeputy.party || 'unknown',
-    name: apiDeputy.party || 'Независим',
-    shortName: apiDeputy.party?.substring(0, 4).toUpperCase() || 'НЕЗ',
-    color: getPartyColor(apiDeputy.party || 'unknown', apiDeputy.party_color),
+    id: partyName.toLowerCase().replace(/\s+/g, '-') || 'unknown',
+    name: partyName,
+    shortName: partyName.substring(0, 4).toUpperCase() || 'НЕЗ',
+    color: getPartyColor(partyName, apiDeputy.party_color),
   };
 
   return {
-    id: String(apiDeputy.id),
-    name: apiDeputy.name,
+    id: String(apiDeputy.id || (apiDeputy as any).mp_id || Math.random()),
+    name: deputyName,
     party,
-    constituency: apiDeputy.region || 'Неизвестен',
-    photo: apiDeputy.photo,
+    constituency: region,
+    photo: photo,
     consistencyScore: 85 + Math.floor(Math.random() * 15), // Placeholder until we calculate real data
     attendance: 80 + Math.floor(Math.random() * 20), // Placeholder
   };

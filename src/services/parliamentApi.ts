@@ -91,6 +91,13 @@ export interface ApiSession {
   type?: string;
 }
 
+// Response wrapper type from API
+interface ApiResponse<T> {
+  data?: T;
+  error?: string;
+  fallback?: boolean;
+}
+
 // Proxy function to call Parliament API through our edge function
 async function callParliamentApi<T>(endpoint: string): Promise<T> {
   const response = await fetch(
@@ -108,7 +115,40 @@ async function callParliamentApi<T>(endpoint: string): Promise<T> {
     throw new Error(errorData.error || errorData.message || `API error: ${response.status}`);
   }
 
-  return response.json();
+  const jsonData = await response.json();
+  
+  // Handle wrapped response format { data: [...], error: ..., fallback: ... }
+  if (jsonData && typeof jsonData === 'object' && !Array.isArray(jsonData)) {
+    // Check if it's an error/fallback response
+    if (jsonData.fallback === true || jsonData.error) {
+      console.warn('API returned fallback response:', jsonData.error);
+      // Return data array if present, otherwise throw
+      if (Array.isArray(jsonData.data)) {
+        return jsonData.data as T;
+      }
+      throw new Error(jsonData.error || 'API fallback triggered');
+    }
+    
+    // Check if response has a data property with array
+    if (Array.isArray(jsonData.data)) {
+      console.log(`API returned wrapped data with ${jsonData.data.length} items`);
+      return jsonData.data as T;
+    }
+    
+    // Check for other common wrapper patterns
+    if (jsonData.items && Array.isArray(jsonData.items)) {
+      return jsonData.items as T;
+    }
+    if (jsonData.results && Array.isArray(jsonData.results)) {
+      return jsonData.results as T;
+    }
+    if (jsonData.list && Array.isArray(jsonData.list)) {
+      return jsonData.list as T;
+    }
+  }
+  
+  // Return as-is if it's an array or other direct response
+  return jsonData as T;
 }
 
 // API Functions

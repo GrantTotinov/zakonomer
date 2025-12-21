@@ -11,19 +11,23 @@ export function useDeputies() {
     queryFn: async (): Promise<Deputy[]> => {
       try {
         const apiDeputies = await api.fetchDeputies();
-        if (apiDeputies.length > 0) {
+        console.log('API deputies response:', apiDeputies?.length || 0, 'items');
+        
+        if (apiDeputies && Array.isArray(apiDeputies) && apiDeputies.length > 0) {
+          console.log('Using REAL deputy data from Parliament API');
+          console.log('Sample deputy:', JSON.stringify(apiDeputies[0]).substring(0, 200));
           return apiDeputies.map(transformers.transformDeputy);
         }
         // Fall back to mock data
-        console.log('Using mock deputy data');
+        console.log('No API data, using mock deputy data');
         return mockDeputies;
       } catch (error) {
-        console.log('API failed, using mock deputy data:', error);
+        console.error('API failed, using mock deputy data:', error);
         return mockDeputies;
       }
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 1,
+    retry: 2,
   });
 }
 
