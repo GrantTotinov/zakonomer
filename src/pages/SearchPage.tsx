@@ -4,17 +4,28 @@ import { Navigation } from '@/components/Navigation';
 import { Footer } from '@/components/Footer';
 import { LawCard } from '@/components/LawCard';
 import { DeputyCard } from '@/components/DeputyCard';
+import { LoadingList } from '@/components/LoadingState';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { searchLaws, searchDeputies } from '@/data/mockData';
+import { useSearchBills, useDeputies } from '@/hooks/useParliamentData';
 import { Search } from 'lucide-react';
 
 export default function SearchPage() {
   const { t } = useLanguage();
   const [query, setQuery] = useState('');
 
-  const lawResults = query.length >= 2 ? searchLaws(query) : [];
-  const deputyResults = query.length >= 2 ? searchDeputies(query) : [];
+  const { data: lawResults = [], isLoading: lawsLoading } = useSearchBills(query);
+  const { data: allDeputies = [], isLoading: deputiesLoading } = useDeputies();
+
+  // Filter deputies locally
+  const deputyResults = query.length >= 2 
+    ? allDeputies.filter(d => 
+        d.name.toLowerCase().includes(query.toLowerCase()) ||
+        d.party.name.toLowerCase().includes(query.toLowerCase())
+      )
+    : [];
+
+  const isLoading = lawsLoading || deputiesLoading;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -47,7 +58,9 @@ export default function SearchPage() {
               </TabsList>
 
               <TabsContent value="laws">
-                {lawResults.length > 0 ? (
+                {lawsLoading ? (
+                  <LoadingList count={6} />
+                ) : lawResults.length > 0 ? (
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {lawResults.map((law) => (
                       <LawCard key={law.id} law={law} />
@@ -59,7 +72,9 @@ export default function SearchPage() {
               </TabsContent>
 
               <TabsContent value="deputies">
-                {deputyResults.length > 0 ? (
+                {deputiesLoading ? (
+                  <LoadingList count={6} />
+                ) : deputyResults.length > 0 ? (
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {deputyResults.map((deputy) => (
                       <DeputyCard key={deputy.id} deputy={deputy} />

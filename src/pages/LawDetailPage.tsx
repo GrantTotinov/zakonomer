@@ -7,11 +7,13 @@ import { Timeline } from '@/components/Timeline';
 import { DiffViewer } from '@/components/DiffViewer';
 import { VotingPieChart } from '@/components/VotingPieChart';
 import { VotingHeatmap } from '@/components/VotingHeatmap';
+import { LoadingState } from '@/components/LoadingState';
+import { ErrorState } from '@/components/ErrorState';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getLawById, deputies } from '@/data/mockData';
+import { useBill, useDeputies } from '@/hooks/useParliamentData';
 import { Bell, BellOff, Share2, ArrowLeft, GitBranch, Eye, EyeOff } from 'lucide-react';
 import { format } from 'date-fns';
 import { bg, enUS } from 'date-fns/locale';
@@ -21,10 +23,41 @@ export default function LawDetailPage() {
   const { t, language } = useLanguage();
   const locale = language === 'bg' ? bg : enUS;
   
-  const law = getLawById(id || '');
-  const [selectedVersion, setSelectedVersion] = useState(law?.currentVersion || '');
+  const { data: law, isLoading, isError, refetch } = useBill(id || '');
+  const { data: deputies = [] } = useDeputies();
+  
+  const [selectedVersion, setSelectedVersion] = useState('');
   const [isFollowing, setIsFollowing] = useState(false);
   const [showDiff, setShowDiff] = useState(true);
+
+  // Set initial version when law loads
+  if (law && !selectedVersion && law.versions.length > 0) {
+    setSelectedVersion(law.versions[0].id);
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Navigation />
+        <main className="flex-1">
+          <LoadingState />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Navigation />
+        <main className="flex-1 flex items-center justify-center">
+          <ErrorState onRetry={() => refetch()} />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!law) {
     return (

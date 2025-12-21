@@ -4,11 +4,12 @@ import { Navigation } from '@/components/Navigation';
 import { Footer } from '@/components/Footer';
 import { StatsCard } from '@/components/StatsCard';
 import { LawCard } from '@/components/LawCard';
+import { LoadingList } from '@/components/LoadingState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { laws, recentChanges, controversialVotes, deputies } from '@/data/mockData';
+import { useBills, useDeputies, useVoteSessions } from '@/hooks/useParliamentData';
 import { Scale, Vote, Users, TrendingUp, Search, ArrowRight, Flame } from 'lucide-react';
 import { format } from 'date-fns';
 import { bg, enUS } from 'date-fns/locale';
@@ -16,6 +17,20 @@ import { bg, enUS } from 'date-fns/locale';
 export default function HomePage() {
   const { t, language } = useLanguage();
   const locale = language === 'bg' ? bg : enUS;
+
+  const { data: laws = [], isLoading: lawsLoading } = useBills();
+  const { data: deputies = [], isLoading: deputiesLoading } = useDeputies();
+  const { data: voteSessions = [], isLoading: votesLoading } = useVoteSessions();
+
+  // Find controversial votes (close margins)
+  const controversialVotes = voteSessions
+    .filter(v => v.votes_for > 0 && v.votes_against > 0)
+    .map(v => ({
+      ...v,
+      margin: Math.abs(v.votes_for - v.votes_against) / (v.votes_for + v.votes_against),
+    }))
+    .sort((a, b) => a.margin - b.margin)
+    .slice(0, 4);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -63,23 +78,26 @@ export default function HomePage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <StatsCard 
                 title={t('stats.totalLaws')} 
-                value={laws.length} 
+                value={lawsLoading ? '...' : laws.length} 
                 icon={<Scale className="h-6 w-6" />} 
               />
               <StatsCard 
                 title={t('stats.changesThisMonth')} 
-                value={12} 
+                value={lawsLoading ? '...' : laws.filter(l => {
+                  const date = new Date(l.lastUpdated);
+                  const now = new Date();
+                  return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+                }).length} 
                 icon={<TrendingUp className="h-6 w-6" />}
-                trend={{ value: 15, isPositive: true }}
               />
               <StatsCard 
                 title={t('stats.deputies')} 
-                value={deputies.length} 
+                value={deputiesLoading ? '...' : deputies.length} 
                 icon={<Users className="h-6 w-6" />} 
               />
               <StatsCard 
                 title={t('stats.votes')} 
-                value={156} 
+                value={votesLoading ? '...' : voteSessions.length} 
                 icon={<Vote className="h-6 w-6" />} 
               />
             </div>
@@ -96,11 +114,15 @@ export default function HomePage() {
               </Button>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {laws.slice(0, 3).map((law) => (
-                <LawCard key={law.id} law={law} />
-              ))}
-            </div>
+            {lawsLoading ? (
+              <LoadingList count={3} />
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {laws.slice(0, 3).map((law) => (
+                  <LawCard key={law.id} law={law} />
+                ))}
+              </div>
+            )}
           </div>
         </section>
 
@@ -112,43 +134,45 @@ export default function HomePage() {
               <h2 className="text-2xl font-bold text-foreground">{t('debates.title')}</h2>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              {controversialVotes.map((vote) => (
-                <Card key={vote.voteId} className="hover:shadow-lg transition-all">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="destructive" className="text-xs">
-                        {t('debates.controversial')}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {format(new Date(vote.date), 'dd MMM yyyy', { locale })}
-                      </span>
-                    </div>
-                    <CardTitle className="text-lg">
-                      <Link to={`/laws/${vote.lawId}`} className="hover:text-primary transition-colors">
-                        {vote.lawTitle}
-                      </Link>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center gap-4">
-                      <div className="flex-1">
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="text-vote-for font-medium">{t('voting.for')}: {vote.votesFor}</span>
-                          <span className="text-vote-against font-medium">{t('voting.against')}: {vote.votesAgainst}</span>
-                        </div>
-                        <div className="h-2 rounded-full overflow-hidden bg-vote-against flex">
-                          <div 
-                            className="h-full bg-vote-for transition-all"
-                            style={{ width: `${(vote.votesFor / (vote.votesFor + vote.votesAgainst)) * 100}%` }}
-                          />
+            {votesLoading ? (
+              <LoadingList count={2} />
+            ) : controversialVotes.length > 0 ? (
+              <div className="grid md:grid-cols-2 gap-6">
+                {controversialVotes.map((vote) => (
+                  <Card key={vote.id} className="hover:shadow-lg transition-all">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="destructive" className="text-xs">
+                          {t('debates.controversial')}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(vote.date), 'dd MMM yyyy', { locale })}
+                        </span>
+                      </div>
+                      <CardTitle className="text-lg">{vote.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center gap-4">
+                        <div className="flex-1">
+                          <div className="flex justify-between text-sm mb-1">
+                            <span className="text-vote-for font-medium">{t('voting.for')}: {vote.votes_for}</span>
+                            <span className="text-vote-against font-medium">{t('voting.against')}: {vote.votes_against}</span>
+                          </div>
+                          <div className="h-2 rounded-full overflow-hidden bg-vote-against flex">
+                            <div 
+                              className="h-full bg-vote-for transition-all"
+                              style={{ width: `${(vote.votes_for / (vote.votes_for + vote.votes_against)) * 100}%` }}
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-center py-8">{t('general.noResults')}</p>
+            )}
           </div>
         </section>
       </main>
