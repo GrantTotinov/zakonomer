@@ -1,4 +1,0 @@
-project_id = "jmuiepulqjihrgmjlsrz"
-
-[functions.parliament-proxy]
-verify_jwt = false
