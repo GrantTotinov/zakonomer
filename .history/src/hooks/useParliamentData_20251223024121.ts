@@ -35,18 +35,18 @@ export function useDeputies() {
 
       if (!data) return []
 
-      return data.map((d) => ({
+      return data.map((d: any) => ({
         id: String(d.id),
         name: d.name,
         constituency: d.constituency || 'Неизвестен',
-        photo: d.photo || undefined,
+        photo: d.photo,
         consistencyScore: d.consistency || 85,
         attendance: d.attendance || 90,
         party: {
-          id: String((d.party as any)?.id || 0),
-          name: (d.party as any)?.name || 'Независим',
-          shortName: (d.party as any)?.short_name || 'НЕЗ',
-          color: (d.party as any)?.color || '#666666',
+          id: String(d.party?.id || 0),
+          name: d.party?.name || 'Независим',
+          shortName: d.party?.short_name || 'НЕЗ',
+          color: d.party?.color || '#666666',
         },
       }))
     },
@@ -58,7 +58,7 @@ export function useDeputy(id: string) {
   return useQuery({
     queryKey: ['deputy', id],
     queryFn: async (): Promise<Deputy | null> => {
-      const { data, error} = await supabase
+      const { data, error } = await supabase
         .from('deputies')
         .select(`
           id,
@@ -74,7 +74,7 @@ export function useDeputy(id: string) {
             color
           )
         `)
-        .eq('id', Number(id))
+        .eq('id', id)
         .single()
 
       if (error) {
@@ -121,7 +121,7 @@ export function useParties() {
 
       if (!data) return []
 
-      return data.map((p) => ({
+      return data.map((p: any) => ({
         id: String(p.id),
         name: p.name,
         shortName: p.short_name || p.name.substring(0, 4),

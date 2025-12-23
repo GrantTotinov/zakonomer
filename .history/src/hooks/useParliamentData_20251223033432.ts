@@ -58,7 +58,7 @@ export function useDeputy(id: string) {
   return useQuery({
     queryKey: ['deputy', id],
     queryFn: async (): Promise<Deputy | null> => {
-      const { data, error} = await supabase
+      const { data, error } = await supabase
         .from('deputies')
         .select(`
           id,
@@ -74,7 +74,7 @@ export function useDeputy(id: string) {
             color
           )
         `)
-        .eq('id', Number(id))
+        .eq('id', id)
         .single()
 
       if (error) {
