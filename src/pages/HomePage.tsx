@@ -24,11 +24,23 @@ export default function HomePage() {
 
   // Find controversial votes (close margins)
   const controversialVotes = voteSessions
-    .filter(v => v.votes_for > 0 && v.votes_against > 0)
-    .map(v => ({
-      ...v,
-      margin: Math.abs(v.votes_for - v.votes_against) / (v.votes_for + v.votes_against),
-    }))
+    .filter(v => {
+      const forCount = Array.isArray(v.votesFor) ? v.votesFor.length : 0;
+      const againstCount = Array.isArray(v.votesAgainst) ? v.votesAgainst.length : 0;
+      return forCount > 0 && againstCount > 0;
+    })
+    .map(v => {
+      const forCount = Array.isArray(v.votesFor) ? v.votesFor.length : 0;
+      const againstCount = Array.isArray(v.votesAgainst) ? v.votesAgainst.length : 0;
+      const law = laws.find(l => l.id === v.lawId);
+      return {
+        ...v,
+        title: law?.title || 'Неизвестен законопроект',
+        votes_for: forCount,
+        votes_against: againstCount,
+        margin: Math.abs(forCount - againstCount) / (forCount + againstCount),
+      };
+    })
     .sort((a, b) => a.margin - b.margin)
     .slice(0, 4);
 
