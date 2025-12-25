@@ -1,8 +1,18 @@
-// src/hooks/useParliamentData.ts - FIXED VERSION
+// src/hooks/useParliamentData.ts - Mock Data Version
 
 import { useQuery } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
 import type { Deputy, Law, Party, VotingRecord } from '@/types'
+import { 
+  deputies as mockDeputies, 
+  laws as mockLaws, 
+  parties as mockParties,
+  getLawById,
+  getDeputyById,
+  searchLaws,
+  searchDeputies,
+  recentChanges as mockRecentChanges,
+  controversialVotes as mockControversialVotes
+} from '@/data/mockData'
 
 // ==================== DEPUTIES ====================
 
@@ -10,47 +20,11 @@ export function useDeputies() {
   return useQuery({
     queryKey: ['deputies'],
     queryFn: async (): Promise<Deputy[]> => {
-      const { data, error } = await supabase
-        .from('deputies')
-        .select(`
-          id,
-          name,
-          constituency,
-          photo,
-          consistency,
-          attendance,
-          party:parties (
-            id,
-            name,
-            short_name,
-            color
-          )
-        `)
-        .order('name')
-
-      if (error) {
-        console.error('Error fetching deputies:', error)
-        throw error
-      }
-
-      if (!data) return []
-
-      return data.map((d) => ({
-        id: String(d.id),
-        name: d.name,
-        constituency: d.constituency || 'Неизвестен',
-        photo: d.photo || undefined,
-        consistencyScore: d.consistency || 85,
-        attendance: d.attendance || 90,
-        party: {
-          id: String((d.party as any)?.id || 0),
-          name: (d.party as any)?.name || 'Независим',
-          shortName: (d.party as any)?.short_name || 'НЕЗ',
-          color: (d.party as any)?.color || '#666666',
-        },
-      }))
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 300))
+      return mockDeputies
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   })
 }
 
@@ -58,46 +32,8 @@ export function useDeputy(id: string) {
   return useQuery({
     queryKey: ['deputy', id],
     queryFn: async (): Promise<Deputy | null> => {
-      const { data, error} = await supabase
-        .from('deputies')
-        .select(`
-          id,
-          name,
-          constituency,
-          photo,
-          consistency,
-          attendance,
-          party:parties (
-            id,
-            name,
-            short_name,
-            color
-          )
-        `)
-        .eq('id', Number(id))
-        .single()
-
-      if (error) {
-        console.error('Error fetching deputy:', error)
-        return null
-      }
-
-      if (!data) return null
-
-      return {
-        id: String(data.id),
-        name: data.name,
-        constituency: data.constituency || 'Неизвестен',
-        photo: data.photo,
-        consistencyScore: data.consistency || 85,
-        attendance: data.attendance || 90,
-        party: {
-          id: String((data.party as any)?.id || 0),
-          name: (data.party as any)?.name || 'Независим',
-          shortName: (data.party as any)?.short_name || 'НЕЗ',
-          color: (data.party as any)?.color || '#666666',
-        },
-      }
+      await new Promise(resolve => setTimeout(resolve, 200))
+      return getDeputyById(id) || null
     },
     enabled: !!id,
   })
@@ -109,38 +45,28 @@ export function useParties() {
   return useQuery({
     queryKey: ['parties'],
     queryFn: async (): Promise<Party[]> => {
-      const { data, error } = await supabase
-        .from('parties')
-        .select('*')
-        .order('name')
-
-      if (error) {
-        console.error('Error fetching parties:', error)
-        throw error
-      }
-
-      if (!data) return []
-
-      return data.map((p) => ({
-        id: String(p.id),
-        name: p.name,
-        shortName: p.short_name || p.name.substring(0, 4),
-        color: p.color || '#666666',
-      }))
+      await new Promise(resolve => setTimeout(resolve, 200))
+      return mockParties
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 10 * 60 * 1000,
   })
 }
 
-// ==================== LAWS (Mock for now) ====================
+// ==================== LAWS ====================
 
 export function useBills(params?: { page?: number; search?: string; year?: number }) {
   return useQuery({
     queryKey: ['bills', params],
     queryFn: async (): Promise<Law[]> => {
-      // TODO: Implement when laws table is populated
-      // For now return empty array
-      return []
+      await new Promise(resolve => setTimeout(resolve, 300))
+      
+      let result = [...mockLaws]
+      
+      if (params?.search) {
+        result = searchLaws(params.search)
+      }
+      
+      return result
     },
     staleTime: 2 * 60 * 1000,
   })
@@ -150,8 +76,8 @@ export function useBill(id: string) {
   return useQuery({
     queryKey: ['bill', id],
     queryFn: async (): Promise<Law | null> => {
-      // TODO: Implement when laws table is populated
-      return null
+      await new Promise(resolve => setTimeout(resolve, 200))
+      return getLawById(id) || null
     },
     enabled: !!id,
   })
@@ -161,22 +87,49 @@ export function useSearchBills(query: string) {
   return useQuery({
     queryKey: ['search-bills', query],
     queryFn: async (): Promise<Law[]> => {
-      // TODO: Implement when laws table is populated
-      return []
+      await new Promise(resolve => setTimeout(resolve, 200))
+      return searchLaws(query)
     },
     enabled: query.length >= 2,
     staleTime: 1 * 60 * 1000,
   })
 }
 
-// ==================== VOTES (Mock for now) ====================
+export function useSearchDeputies(query: string) {
+  return useQuery({
+    queryKey: ['search-deputies', query],
+    queryFn: async (): Promise<Deputy[]> => {
+      await new Promise(resolve => setTimeout(resolve, 200))
+      return searchDeputies(query)
+    },
+    enabled: query.length >= 2,
+    staleTime: 1 * 60 * 1000,
+  })
+}
+
+// ==================== VOTES ====================
 
 export function useVoteSessions(params?: { page?: number; billId?: string }) {
   return useQuery({
     queryKey: ['vote-sessions', params],
     queryFn: async () => {
-      // TODO: Implement when votes table is populated
-      return []
+      await new Promise(resolve => setTimeout(resolve, 300))
+      
+      // Extract voting records from laws
+      const votingRecords: VotingRecord[] = []
+      mockLaws.forEach(law => {
+        law.versions.forEach(version => {
+          if (version.votingRecord) {
+            votingRecords.push(version.votingRecord)
+          }
+        })
+      })
+      
+      if (params?.billId) {
+        return votingRecords.filter(v => v.lawId === params.billId)
+      }
+      
+      return votingRecords
     },
     staleTime: 5 * 60 * 1000,
   })
@@ -186,10 +139,46 @@ export function useVoteDetails(voteId: string, lawId: string) {
   return useQuery({
     queryKey: ['vote-details', voteId],
     queryFn: async (): Promise<VotingRecord | null> => {
-      // TODO: Implement when vote_records table is populated
+      await new Promise(resolve => setTimeout(resolve, 200))
+      
+      const law = getLawById(lawId)
+      if (!law) return null
+      
+      for (const version of law.versions) {
+        if (version.votingRecord?.id === voteId) {
+          return version.votingRecord
+        }
+      }
+      
       return null
     },
     enabled: !!voteId && !!lawId,
+  })
+}
+
+// ==================== RECENT CHANGES ====================
+
+export function useRecentChanges() {
+  return useQuery({
+    queryKey: ['recent-changes'],
+    queryFn: async () => {
+      await new Promise(resolve => setTimeout(resolve, 200))
+      return mockRecentChanges
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+// ==================== CONTROVERSIAL VOTES ====================
+
+export function useControversialVotes() {
+  return useQuery({
+    queryKey: ['controversial-votes'],
+    queryFn: async () => {
+      await new Promise(resolve => setTimeout(resolve, 200))
+      return mockControversialVotes
+    },
+    staleTime: 5 * 60 * 1000,
   })
 }
 
